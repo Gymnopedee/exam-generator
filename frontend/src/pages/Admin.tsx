@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UploadCloud, File, CheckCircle2, Loader2, Database, Settings, Plus, Trash2, Edit2 } from 'lucide-react';
+import { UploadCloud, File, CheckCircle2, Loader2, Database, Settings, Plus, Trash2 } from 'lucide-react';
 import { API_URL } from '../config';
 
 interface Material {

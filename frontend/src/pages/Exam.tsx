@@ -1,27 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronRight, Clock, AlertCircle, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, XCircle } from 'lucide-react';
 import { API_URL } from '../config';
 
-// MVP: Dummy questions
-const DUMMY_QUESTIONS = [
-  { 
-    id: 1, 
-    type: 'multiple_choice', 
-    question: '다음 중 기능론적 관점에 대한 설명으로 옳은 것은?', 
-    choices: ['사회 불평등은 불가피하다.', '계급 재생산을 강조한다.', '대립과 갈등을 기본 속성으로 본다.'], 
-    answer: 0,
-    explanation: '기능론은 사회를 유기체로 보며, 사회 불평등은 개인의 능력과 기여도에 따른 정당한 보상의 결과로 불가피하다고 봅니다.'
-  },
-  { 
-    id: 2, 
-    type: 'ox', 
-    question: '갈등론은 기득권층의 이익을 대변하는 논리로 악용될 수 있다는 비판을 받는다.', 
-    choices: ['O', 'X'], 
-    answer: 1,
-    explanation: '기득권층의 이익을 대변하는 논리로 악용될 수 있다는 비판을 받는 것은 기능론입니다.'
-  },
-];
 
 interface Question {
   id: number;
