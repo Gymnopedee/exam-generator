@@ -1,0 +1,25 @@
+# 의존성 패키지 (용량 큼, npm install로 복원 가능)
+node_modules/
+dist/
+
+# 환경변수 (API 키 등 민감 정보)
+.env
+.env.local
+.env.production
+
+# 업로드된 임시 파일
+backend/uploads/
+
+# Firebase 서비스 계정 키 (절대 올리면 안 됨!)
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+
+# 로그
+*.log
+npm-debug.log*
+
+# OS 파일
+.DS_Store
+Thumbs.db
