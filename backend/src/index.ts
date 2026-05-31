@@ -200,6 +200,52 @@ app.delete('/api/subjects/:id', async (req, res) => {
   }
 });
 
+// AI Tutor Chat Endpoint using Gemini
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { question, myAnswer, correctAnswer, concept, explanation, chatHistory, message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'message is required' });
+    }
+
+    const systemPrompt = `너는 학생의 학습을 돕는 친절하고 똑똑한 AI 오답 코치야.
+현재 학생은 자기가 틀린 시험 문제를 복습하며 너에게 질문하고 있어.
+
+[틀린 문제 정보]
+- 문제: ${question || '알 수 없음'}
+- 학생이 작성한 오답: ${myAnswer || '선택 안 함'}
+- 실제 정답: ${correctAnswer || '알 수 없음'}
+- 단원/개념: ${concept || '일반 개념'}
+- 출제 해설: ${explanation || '해설 없음'}
+
+이 문제와 개념에 대해 학생이 다음과 같은 질문을 했어:
+"${message}"
+
+[이전 대화 맥락]
+${(chatHistory || []).map((c: any) => `${c.role === 'user' ? '학생' : '코치'}: ${c.text}`).join('\n')}
+
+[대답 수칙]
+1. 고등학교 친절한 선생님처럼 따뜻하고 상냥한 해요체(존댓말)를 사용해줘.
+2. 학생의 질문을 공감해주고 격려하면서 질문의 요지를 정확히 짚어줘.
+3. 틀린 오답 지문이 왜 오답이고 정답 지문이 왜 정답인지, 핵심 개념을 비교하며 고등학생 눈높이에 맞게 아주 쉽게 명쾌하게 설명해줘.
+4. 너무 긴 대답보다는 읽기 좋게 문단을 나누어 3-4문장 내외로 핵심 위주로 설명해줘.`;
+
+    const result = await generateContentWithRetry({
+      model: 'gemini-2.5-flash',
+      contents: [
+        { text: systemPrompt }
+      ]
+    });
+
+    const reply = result.text || '죄송해요, 답변을 생성하는 도중 오류가 발생했어요. 다시 한 번 질문해 주시겠어요?';
+    res.json({ success: true, reply });
+  } catch (error: any) {
+    console.error('[Chat API Error]:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

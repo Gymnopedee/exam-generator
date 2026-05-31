@@ -76,8 +76,28 @@ export default function Exam() {
   };
 
   const handleSubmit = () => {
+    // 사용자가 푼 전체 문제에서 틀린 문제만 필터링하여 오답 정보 객체로 가공
+    const wrongQuestions = questions.map((q, idx) => {
+      const selectedChoiceIdx = answers[idx];
+      const isCorrect = selectedChoiceIdx === q.answer;
+      return { q, idx, selectedChoiceIdx, isCorrect };
+    })
+    .filter(item => item.selectedChoiceIdx !== undefined && !item.isCorrect)
+    .map((item, reviewIdx) => {
+      const { q, selectedChoiceIdx } = item;
+      return {
+        id: reviewIdx + 1,
+        question: q.question,
+        myAnswer: q.choices[selectedChoiceIdx] !== undefined ? q.choices[selectedChoiceIdx] : '선택 안 함',
+        correctAnswer: q.choices[q.answer] || '답안 없음',
+        concept: q.type || '개념 분석',
+        explanation: q.explanation || '이 문제에 대한 추가 해설이 없습니다.'
+      };
+    });
+
+    // 로컬 스토리지에 오답 정보 저장
+    localStorage.setItem('wrong_questions', JSON.stringify(wrongQuestions));
     setIsSubmitted(true);
-    // In real app: save to firestore, calculate score, redirect
   };
 
   const formatTime = (sec: number) => {
@@ -208,7 +228,7 @@ export default function Exam() {
           <div className="flex gap-4 w-full md:w-auto">
           {currentIdx === questions.length - 1 ? (
             <button 
-              onClick={() => setIsSubmitted(true)}
+              onClick={handleSubmit}
               className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl flex items-center justify-center gap-2 transition-colors"
             >
               제출하고 결과 보기 <CheckCircle2 className="w-5 h-5" />
