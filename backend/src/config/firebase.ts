@@ -2,13 +2,26 @@ import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin (Requires GOOGLE_APPLICATION_CREDENTIALS or process.env variables)
 let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+
+console.log('--- FIREBASE ENV DEBUG ---');
+console.log('PROJECT_ID exists?', !!process.env.FIREBASE_PROJECT_ID);
+console.log('CLIENT_EMAIL exists?', !!process.env.FIREBASE_CLIENT_EMAIL);
+console.log('PRIVATE_KEY exists?', !!process.env.FIREBASE_PRIVATE_KEY);
+console.log('PRIVATE_KEY length:', privateKey.length);
+console.log('--------------------------');
+
 if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+  privateKey = privateKey.slice(1, -1);
+} else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
   privateKey = privateKey.slice(1, -1);
 }
 privateKey = privateKey.replace(/\\n/g, '\n');
 
 if (!admin.apps.length) {
   try {
+    if (!privateKey) {
+      throw new Error("FIREBASE_PRIVATE_KEY is empty! Please check Railway Variables.");
+    }
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID || '',
