@@ -4,11 +4,56 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { processDocumentAndGenerateQuestions } from './agents/pipeline';
 import { ai, generateContentWithRetry } from './services/gemini';
 import { db } from './config/firebase';
 
 dotenv.config();
+
+// --- Admin Authentication Security Layer ---
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+// 암호 서명 방식의 2시간 일회용 관리자 세션 토큰 생성
+function generateAdminToken(): string {
+  const payload = JSON.stringify({ role: 'admin', exp: Date.now() + 2 * 60 * 60 * 1000 });
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  return Buffer.from(payload).toString('base64') + '.' + signature;
+}
+
+// 토큰의 무결성 및 만료 여부 확인
+function verifyAdminToken(token: string | undefined): boolean {
+  if (!token) return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return false;
+    const [payloadBase64, signature] = parts;
+    const payloadStr = Buffer.from(payloadBase64, 'base64').toString('utf8');
+    const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(payloadStr).digest('hex');
+    
+    if (signature !== expectedSignature) return false;
+    
+    const payload = JSON.parse(payloadStr);
+    if (payload.role !== 'admin') return false;
+    if (payload.exp < Date.now()) return false;
+    
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Express 권한 제어 미들웨어
+const adminAuth = (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (verifyAdminToken(token)) {
+    next();
+  } else {
+    res.status(401).json({ success: false, error: 'Unauthorized: 관리자 권한이 없거나 세션이 만료되었습니다.' });
+  }
+};
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -43,8 +88,8 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// New PDF upload endpoint (MVP RAG via Gemini File API)
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+// New PDF upload endpoint (MVP RAG via Gemini File API) - Protected by adminAuth
+app.post('/api/upload', adminAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -117,7 +162,7 @@ app.get('/api/subjects', async (req, res) => {
   }
 });
 
-app.post('/api/subjects', async (req, res) => {
+app.post('/api/subjects', adminAuth, async (req, res) => {
   try {
     const { name, color } = req.body;
     if (!name) return res.status(400).json({ error: 'name required' });
@@ -177,7 +222,7 @@ app.get('/api/questions', async (req, res) => {
   }
 });
 
-app.put('/api/subjects/:id', async (req, res) => {
+app.put('/api/subjects/:id', adminAuth, async (req, res) => {
   try {
     const { name, color } = req.body;
     const updateData: any = {};
@@ -191,12 +236,44 @@ app.put('/api/subjects/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/subjects/:id', async (req, res) => {
+app.delete('/api/subjects/:id', adminAuth, async (req, res) => {
   try {
     await db.collection('subjects').doc(req.params.id).delete();
     res.json({ success: true, message: 'Subject deleted' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Admin Login & Verify Security APIs ---
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { passcode } = req.body;
+    const targetPasscode = process.env.ADMIN_PASSCODE || '7564'; // 환경 변수가 우선하고 없으면 기본 7564
+    
+    if (passcode === targetPasscode) {
+      const token = generateAdminToken();
+      res.json({ success: true, token });
+    } else {
+      res.status(401).json({ success: false, error: '올바르지 않은 관리자 패스코드입니다.' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/admin/verify', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (verifyAdminToken(token)) {
+      res.json({ success: true, message: '유효한 관리자 세션입니다.' });
+    } else {
+      res.status(401).json({ success: false, error: '유효하지 않거나 만료된 세션입니다.' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

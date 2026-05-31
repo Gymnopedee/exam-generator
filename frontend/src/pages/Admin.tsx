@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UploadCloud, File, CheckCircle2, Loader2, Database, Settings, Plus, Trash2 } from 'lucide-react';
 import { API_URL } from '../config';
 
@@ -18,6 +19,7 @@ interface Subject {
 }
 
 export default function Admin() {
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [subject, setSubject] = useState('');
   const [questionCount, setQuestionCount] = useState('10'); // 생성할 문제 수
@@ -30,8 +32,33 @@ export default function Admin() {
   const [subAddMsg, setSubAddMsg] = useState(''); // 과목 추가 결과 메시지
 
   useEffect(() => {
-    fetchMaterials();
-    fetchSubjects();
+    const checkAuth = async () => {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        alert('관리자 권한이 없습니다. 메인 페이지로 이동합니다.');
+        navigate('/');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}/api/admin/verify`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert('관리자 세션이 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.');
+          localStorage.removeItem('admin_token');
+          navigate('/');
+        }
+      } catch (err) {
+        alert('서버 연결이 원활하지 않아 관리자 권한을 인증할 수 없습니다.');
+        navigate('/');
+      }
+    };
+
+    checkAuth().then(() => {
+      fetchMaterials();
+      fetchSubjects();
+    });
   }, []);
 
   const fetchMaterials = async () => {
@@ -67,7 +94,10 @@ export default function Admin() {
     try {
       const res = await fetch(`${API_URL}/api/subjects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
         body: JSON.stringify({ name: newSubName, color: 'bg-blue-500' })
       });
       const data = await res.json();
@@ -91,7 +121,12 @@ export default function Admin() {
   const handleDeleteSubject = async (id: string) => {
     if (!confirm('과목을 삭제하시겠습니까?')) return;
     try {
-      await fetch(`${API_URL}/api/subjects/${id}`, { method: 'DELETE' });
+      await fetch(`${API_URL}/api/subjects/${id}`, { 
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
       fetchSubjects();
     } catch (err) {
       console.error(err);
@@ -113,6 +148,9 @@ export default function Admin() {
     try {
       const res = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
         body: formData,
       });
       const data = await res.json();
