@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { UploadCloud, File, CheckCircle2, Loader2, Database, Settings, Plus, Trash2 } from 'lucide-react';
 import { API_URL } from '../config';
 
@@ -35,7 +36,7 @@ export default function Admin() {
     const checkAuth = async () => {
       const token = localStorage.getItem('admin_token');
       if (!token) {
-        alert('관리자 권한이 없습니다. 메인 페이지로 이동합니다.');
+        toast.error('관리자 권한이 없습니다. 메인 페이지로 이동합니다.');
         navigate('/');
         return;
       }
@@ -45,12 +46,12 @@ export default function Admin() {
         });
         const data = await res.json();
         if (!data.success) {
-          alert('관리자 세션이 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.');
+          toast.error('관리자 세션이 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.');
           localStorage.removeItem('admin_token');
           navigate('/');
         }
       } catch (err) {
-        alert('서버 연결이 원활하지 않아 관리자 권한을 인증할 수 없습니다.');
+        toast.error('서버 연결이 원활하지 않아 관리자 권한을 인증할 수 없습니다.');
         navigate('/');
       }
     };
@@ -102,18 +103,20 @@ export default function Admin() {
       });
       const data = await res.json();
       if (data.success) {
-        // alert() 없이 즉시 state에 반영 → 화면이 끊기지 않음
         const newSubject: Subject = { id: data.id, name: newSubName, color: 'bg-blue-500' };
         setSubjects(prev => [...prev, newSubject]);
         if (!subject) setSubject(data.id);
         setNewSubName('');
+        toast.success('🎉 새로운 과목이 추가되었습니다!');
         setSubAddMsg('✅ 과목이 추가되었습니다.');
         setTimeout(() => setSubAddMsg(''), 3000);
       } else {
+        toast.error('과목 추가 실패: ' + data.error);
         setSubAddMsg('❌ ' + data.error);
       }
     } catch (err) {
       console.error(err);
+      toast.error('서버와의 통신에 에러가 발생했습니다.');
       setSubAddMsg('❌ 서버 오류로 추가할 수 없습니다.');
     }
   };
@@ -127,9 +130,11 @@ export default function Admin() {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
       });
+      toast.success('🗑️ 과목이 안전하게 삭제되었습니다.');
       fetchSubjects();
     } catch (err) {
       console.error(err);
+      toast.error('과목 삭제 과정에서 에러가 발생했습니다.');
     }
   };
 
@@ -145,6 +150,9 @@ export default function Admin() {
     formData.append('subject', subject);
     formData.append('questionCount', questionCount); // 문제 수 전달
 
+    // 긴 문제 생성 파이프라인 대기를 위해 로딩 토스트 활성화
+    const uploadToast = toast.loading('학습 자료를 파싱하고 AI 문제를 생성하고 있습니다 (최대 45초 소요)...');
+
     try {
       const res = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
@@ -158,12 +166,13 @@ export default function Admin() {
       if (data.success) {
         setUploadSuccess(true);
         setFile(null);
+        toast.success('✨ 자료 등록 및 AI 맞춤 문제은행 구축이 성공적으로 끝났습니다!', { id: uploadToast, duration: 5000 });
         fetchMaterials();
       } else {
-        alert('업로드 실패: ' + data.error);
+        toast.error('업로드 및 문제 생성 실패: ' + data.error, { id: uploadToast });
       }
     } catch (err) {
-      alert('업로드 중 오류 발생');
+      toast.error('업로드 중 통신 오류가 발생했습니다. 파일 사양을 점검해 주세요.', { id: uploadToast });
     } finally {
       setIsUploading(false);
     }

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import toast, { Toaster } from 'react-hot-toast';
 import Home from './pages/Home';
 import Exam from './pages/Exam';
 import Review from './pages/Review';
@@ -13,6 +14,9 @@ function Header() {
     const code = window.prompt('관리자 비밀번호를 입력하세요.');
     if (code === null) return; // 취소 선택 시 종료
     
+    // 로그인 대기상태를 사용자에게 미학적으로 피드백하기 위해 로딩 토스트 띄우기
+    const loadingToast = toast.loading('관리자 권한을 확인하고 있습니다...');
+    
     try {
       const res = await fetch(`${API_URL}/api/admin/login`, {
         method: 'POST',
@@ -22,14 +26,14 @@ function Header() {
       const data = await res.json();
       
       if (data.success && data.token) {
-        // 성공 시 토큰을 안전하게 로컬스토리지에 저장 후 이동
         localStorage.setItem('admin_token', data.token);
+        toast.success('관리자 인증에 성공했습니다!', { id: loadingToast });
         navigate('/admin');
       } else {
-        alert(data.error || '비밀번호가 올바르지 않습니다.');
+        toast.error(data.error || '비밀번호가 올바르지 않습니다.', { id: loadingToast });
       }
     } catch (err) {
-      alert('관리자 인증 중 오류가 발생했습니다. 서버 연결 상태를 확인해 주세요.');
+      toast.error('관리자 인증 중 오류가 발생했습니다. 서버 연결 상태를 확인해 주세요.', { id: loadingToast });
     }
   };
 
@@ -64,6 +68,8 @@ function App() {
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>
+        {/* 토스트 알림을 띄우는 컨테이너 배치 */}
+        <Toaster position="top-center" reverseOrder={false} />
       </div>
     </Router>
   );
