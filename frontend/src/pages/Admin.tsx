@@ -31,6 +31,10 @@ export default function Admin() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [newSubName, setNewSubName] = useState('');
   const [subAddMsg, setSubAddMsg] = useState(''); // 과목 추가 결과 메시지
+  
+  // SSE 실시간 AI 문제 생성 진행 상태 추적용 state
+  const [progress, setProgress] = useState<number | null>(null);
+  const [progressMsg, setProgressMsg] = useState<string>('');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -144,16 +148,16 @@ export default function Admin() {
 
     setIsUploading(true);
     setUploadSuccess(false);
+    setProgress(5);
+    setProgressMsg('서버와 보안 터널을 연결하여 파일을 수신하는 중입니다...');
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('subject', subject);
     formData.append('questionCount', questionCount); // 문제 수 전달
 
-    // 긴 문제 생성 파이프라인 대기를 위해 로딩 토스트 활성화
-    const uploadToast = toast.loading('학습 자료를 파싱하고 AI 문제를 생성하고 있습니다 (최대 45초 소요)...');
-
     try {
+      // 1) 즉각적으로 Job ID를 발급받는 백엔드 요청 전송
       const res = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
         headers: {
@@ -163,18 +167,69 @@ export default function Admin() {
       });
       const data = await res.json();
       
-      if (data.success) {
-        setUploadSuccess(true);
-        setFile(null);
-        toast.success('✨ 자료 등록 및 AI 맞춤 문제은행 구축이 성공적으로 끝났습니다!', { id: uploadToast, duration: 5000 });
-        fetchMaterials();
-      } else {
-        toast.error('업로드 및 문제 생성 실패: ' + data.error, { id: uploadToast });
+      if (!data.success || !data.jobId) {
+        throw new Error(data.error || '백엔드 작업 생성에 실패했습니다.');
       }
-    } catch (err) {
-      toast.error('업로드 중 통신 오류가 발생했습니다. 파일 사양을 점검해 주세요.', { id: uploadToast });
-    } finally {
+
+      const jobId = data.jobId;
+      console.log(`[SSE Progress] Created Job ${jobId}. Connecting EventSource...`);
+
+      // 2) 실시간 SSE 진행도 스트림 연결
+      const eventSource = new EventSource(`${API_URL}/api/upload/progress?jobId=${jobId}`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const jobData = JSON.parse(event.data);
+          
+          if (jobData.status === 'connected') {
+            console.log('[SSE] Channel connected successfully.');
+            return;
+          }
+
+          // 실시간 진행도 및 메세지 갱신
+          if (jobData.progress !== undefined) {
+            setProgress(jobData.progress);
+          }
+          if (jobData.message) {
+            setProgressMsg(jobData.message);
+          }
+
+          // 완료 시 자원 정리 및 상태 전환
+          if (jobData.status === 'completed') {
+            eventSource.close();
+            setProgress(null);
+            setIsUploading(false);
+            setUploadSuccess(true);
+            setFile(null);
+            toast.success('✨ 자료 등록 및 AI 맞춤 문제은행 구축이 완료되었습니다!', { duration: 5000 });
+            fetchMaterials();
+          }
+
+          // 실패 시 자원 정리 및 통보
+          if (jobData.status === 'failed') {
+            eventSource.close();
+            setProgress(null);
+            setIsUploading(false);
+            toast.error(jobData.error || '문제 생성 도중 예외가 발생했습니다.');
+          }
+
+        } catch (parseErr) {
+          console.error('[SSE Parse Error]:', parseErr);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error('[SSE Connection Error]:', err);
+        eventSource.close();
+        setProgress(null);
+        setIsUploading(false);
+        toast.error('실시간 진행 상태 채널이 중단되었습니다. 작업은 백그라운드에서 계속 진행될 수 있습니다.');
+      };
+
+    } catch (err: any) {
+      setProgress(null);
       setIsUploading(false);
+      toast.error(err.message || '파일 전송 과정에서 통신 오류가 발생했습니다.');
     }
   };
 
@@ -271,13 +326,38 @@ export default function Admin() {
               </label>
             </div>
 
+            {/* 실시간 SSE 진행 상태 피드백 UI 보드 */}
+            {progress !== null && (
+              <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center text-xs font-bold">
+                  <span className="text-indigo-700 animate-pulse flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> AI 브레인 가동 중...
+                  </span>
+                  <span className="text-indigo-900 font-mono text-sm">{progress}%</span>
+                </div>
+                
+                {/* 물결치듯 차오르는 미려한 프로그레스 바 */}
+                <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className="bg-gradient-to-r from-indigo-500 to-blue-600 h-full rounded-full transition-all duration-500 ease-out shadow-sm"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                
+                {/* 실시간 단계 메시지 */}
+                <p className="text-xs text-indigo-900 leading-relaxed font-medium transition-all duration-300">
+                  {progressMsg}
+                </p>
+              </div>
+            )}
+
             <button 
               type="submit"
               disabled={isUploading || !file || subjects.length === 0}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
             >
               {isUploading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> AI 분석 및 문제 생성 중...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> 연산 과정 추적 중...</>
               ) : (
                 <><UploadCloud className="w-5 h-5" /> 자료 업로드 및 문제 생성</>
               )}

@@ -88,7 +88,20 @@ app.post('/api/generate', adminAuth, async (req, res) => {
   }
 });
 
+interface UploadJob {
+  id: string;
+  progress: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  message: string;
+  filename: string;
+  result?: any;
+  error?: string;
+}
+
+const uploadJobs = new Map<string, UploadJob>();
+
 // New PDF upload endpoint (MVP RAG via Gemini File API) - Protected by adminAuth
+// 즉시 Job ID를 반환하고 백그라운드에서 실시간 진행도를 갱신하며 연산을 지속함
 app.post('/api/upload', adminAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -97,47 +110,156 @@ app.post('/api/upload', adminAuth, upload.single('file'), async (req, res) => {
     const subject = req.body.subject || '사회문화';
     const questionCount = parseInt(req.body.questionCount || '10', 10);
     
-    console.log(`[Upload] Uploading ${req.file.originalname} to Gemini...`);
-    const fileResponse = await ai.files.upload({
-      file: req.file.path,
-      config: { mimeType: req.file.mimetype }
+    // 고유 작업 ID 발행 및 풀 등록
+    const jobId = crypto.randomUUID();
+    const tempFilePath = req.file.path;
+    const originalname = req.file.originalname;
+    const mimetype = req.file.mimetype;
+
+    uploadJobs.set(jobId, {
+      id: jobId,
+      progress: 5,
+      status: 'pending',
+      message: '서버가 파일을 수신했습니다. 업로드를 시작합니다.',
+      filename: originalname
     });
 
-    console.log(`[Upload] File uploaded. URI: ${fileResponse.name}`);
-    
-    // For MVP, we'll extract text from Gemini directly and pass it to the pipeline
-    const textExtraction = await generateContentWithRetry({
-      model: 'gemini-2.5-flash',
-      contents: [
-        { fileData: { fileUri: fileResponse.uri || '', mimeType: fileResponse.mimeType || '' } },
-        { text: "이 문서의 텍스트 내용을 모두 추출해서 그대로 출력해줘." }
-      ]
-    });
+    // 즉시 비동기로 응답 반환 (대기 이탈 방지!)
+    res.json({ success: true, jobId });
 
-    const extractedText = textExtraction.text || '';
-    console.log(`[Upload] Text extracted (${extractedText.length} chars). Starting pipeline...`);
+    // 백그라운드 비동기 처리 시작
+    (async () => {
+      try {
+        const job = uploadJobs.get(jobId);
+        if (!job) return;
 
-    const result = await processDocumentAndGenerateQuestions(extractedText, subject, questionCount);
+        // Step 1: Gemini File API 업로드 (15%)
+        job.progress = 15;
+        job.status = 'processing';
+        job.message = '학습 자료를 AI 파싱 컨테이너에 안전하게 로드하고 있습니다...';
+        uploadJobs.set(jobId, { ...job });
 
-    // Save Material metadata to Firestore only if pipeline succeeds
-    const materialRef = db.collection('materials').doc();
-    await materialRef.set({
-      id: materialRef.id,
-      filename: req.file.originalname,
-      subject,
-      createdAt: new Date().toISOString(),
-      status: 'completed'
-    });
+        console.log(`[Upload Job ${jobId}] Uploading to Gemini...`);
+        const fileResponse = await ai.files.upload({
+          file: tempFilePath,
+          config: { mimeType: mimetype }
+        });
 
-    res.json({ success: true, materialId: materialRef.id, questions: result });
+        // Step 2: 텍스트 추출 진행 (45%)
+        job.progress = 45;
+        job.message = 'Gemini AI가 학습 자료의 본문 텍스트를 정밀 분석 및 추출하고 있습니다...';
+        uploadJobs.set(jobId, { ...job });
+
+        console.log(`[Upload Job ${jobId}] Extacting text...`);
+        const textExtraction = await generateContentWithRetry({
+          model: 'gemini-2.5-flash',
+          contents: [
+            { fileData: { fileUri: fileResponse.uri || '', mimeType: fileResponse.mimeType || '' } },
+            { text: "이 문서의 텍스트 내용을 모두 추출해서 그대로 출력해줘." }
+          ]
+        });
+
+        const extractedText = textExtraction.text || '';
+        if (!extractedText.trim()) {
+          throw new Error('학습 문서에서 텍스트를 추출할 수 없습니다. 파일 형식을 다시 확인해 주세요.');
+        }
+
+        // Step 3: AI 문제 생성 파이프라인 구동 (75%)
+        job.progress = 75;
+        job.message = '출제 위원 모드를 가동하여 본문 기반 맞춤형 시험 문제와 보기, 해설을 설계하고 있습니다...';
+        uploadJobs.set(jobId, { ...job });
+
+        console.log(`[Upload Job ${jobId}] Starting pipeline...`);
+        const result = await processDocumentAndGenerateQuestions(extractedText, subject, questionCount);
+
+        // Step 4: Firestore Metadata 저장 (95%)
+        job.progress = 95;
+        job.message = '생성된 문제들과 학습 자료 정보를 데이터베이스에 고속 연동 중입니다...';
+        uploadJobs.set(jobId, { ...job });
+
+        const materialRef = db.collection('materials').doc();
+        await materialRef.set({
+          id: materialRef.id,
+          filename: originalname,
+          subject,
+          createdAt: new Date().toISOString(),
+          status: 'completed'
+        });
+
+        // Step 5: 완료 (100%)
+        job.progress = 100;
+        job.status = 'completed';
+        job.message = '🎉 맞춤 문제은행 구축이 성공적으로 끝났습니다! 잠시 후 화면을 새로고침합니다.';
+        job.result = { materialId: materialRef.id, questions: result };
+        uploadJobs.set(jobId, { ...job });
+        console.log(`[Upload Job ${jobId}] Job completed successfully!`);
+
+      } catch (err: any) {
+        console.error(`[Upload Job ${jobId}] Job failed:`, err);
+        const job = uploadJobs.get(jobId);
+        if (job) {
+          job.status = 'failed';
+          job.message = `에러 발생: ${err.message}`;
+          job.error = err.message;
+          uploadJobs.set(jobId, { ...job });
+        }
+      } finally {
+        // 임시 리소스 파일 격리 제거
+        try { fs.unlinkSync(tempFilePath); } catch (e) {}
+      }
+    })();
+
   } catch (error: any) {
     console.error(error);
     res.status(500).json({ error: error.message });
-  } finally {
-    if (req.file?.path) {
-      try { fs.unlinkSync(req.file.path); } catch(e) {}
-    }
   }
+});
+
+// 실시간 진행도를 SSE(Server-Sent Events) 스트림으로 스트리밍하는 채널 개설
+app.get('/api/upload/progress', (req, res) => {
+  const jobId = req.query.jobId as string;
+  if (!jobId) {
+    return res.status(400).json({ error: 'jobId is required' });
+  }
+
+  // SSE 연결을 위해 HTTP 헤더 설정
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  // 즉시 초기 연결 응답 반환
+  res.write(`data: ${JSON.stringify({ status: 'connected', message: '진행 상태 채널 개설 완료' })}\n\n`);
+
+  // 1초마다 메모리 작업 풀을 대조하여 실시간 전송
+  const intervalId = setInterval(() => {
+    const job = uploadJobs.get(jobId);
+    if (!job) {
+      res.write(`data: ${JSON.stringify({ status: 'failed', message: '작업 정보를 찾을 수 없습니다.' })}\n\n`);
+      clearInterval(intervalId);
+      res.end();
+      return;
+    }
+
+    // 최신 상태 스트리밍
+    res.write(`data: ${JSON.stringify(job)}\n\n`);
+
+    // 완료 또는 실패 감지 시 타이머 클리어 후 종료
+    if (job.status === 'completed' || job.status === 'failed') {
+      clearInterval(intervalId);
+      // 스트림을 부드럽게 종료하기 전에 약간의 버퍼 후 전송 마감
+      setTimeout(() => {
+        try { res.end(); } catch (e) {}
+      }, 500);
+    }
+  }, 1000);
+
+  // 클라이언트가 임의로 브라우저 창을 닫아 연결을 끊을 시 리소스 정리
+  req.on('close', () => {
+    clearInterval(intervalId);
+  });
 });
 
 // Get materials list to check duplicates
