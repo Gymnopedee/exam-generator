@@ -76,7 +76,7 @@ export default function Exam() {
   };
 
   const handleSubmit = () => {
-    // 사용자가 푼 전체 문제에서 틀린 문제만 필터링하여 오답 정보 객체로 가공
+    // 1) 사용자가 푼 전체 문제에서 틀린 문제만 필터링하여 오답 정보 객체로 가공
     const wrongQuestions = questions.map((q, idx) => {
       const selectedChoiceIdx = answers[idx];
       const isCorrect = selectedChoiceIdx === q.answer;
@@ -97,6 +97,34 @@ export default function Exam() {
 
     // 로컬 스토리지에 오답 정보 저장
     localStorage.setItem('wrong_questions', JSON.stringify(wrongQuestions));
+
+    // 2) 성적 통계 계산 및 백엔드 영구 보존 API 호출
+    const correctCount = questions.filter((q, idx) => answers[idx] === q.answer).length;
+    const totalCount = questions.length;
+    const correctRate = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+    fetch(`${API_URL}/api/history`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subjectId,
+        subjectName: subjectName || subjectId,
+        score: correctCount,
+        totalQuestions: totalCount,
+        correctRate,
+        userId: 'anonymous_user'
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        console.log('Exam history saved successfully:', data.history);
+      }
+    })
+    .catch(err => {
+      console.error('Failed to save exam history to backend:', err);
+    });
+
     setIsSubmitted(true);
   };
 

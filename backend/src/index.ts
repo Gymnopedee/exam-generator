@@ -323,6 +323,52 @@ ${(chatHistory || []).map((c: any) => `${c.role === 'user' ? '학생' : '코치'
   }
 });
 
+// --- Exam History APIs ---
+app.post('/api/history', async (req, res) => {
+  try {
+    const { subjectId, subjectName, score, totalQuestions, correctRate, userId } = req.body;
+    
+    const historyRef = db.collection('exam_histories').doc();
+    const historyData = {
+      id: historyRef.id,
+      subjectId,
+      subjectName,
+      score,
+      totalQuestions,
+      correctRate,
+      userId: userId || 'anonymous_user',
+      takenAt: new Date().toISOString()
+    };
+    
+    await historyRef.set(historyData);
+    res.json({ success: true, history: historyData });
+  } catch (error: any) {
+    console.error('[Save History Error]:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/history', async (req, res) => {
+  try {
+    const userId = (req.query.userId as string) || 'anonymous_user';
+    
+    // Firestore 복합 쿼리 인덱스 에러 방지를 위해, 안전하게 메모리 수준에서 정렬 처리 수행
+    const snapshot = await db.collection('exam_histories')
+      .where('userId', '==', userId)
+      .get();
+      
+    const histories = snapshot.docs
+      .map(doc => doc.data())
+      .sort((a: any, b: any) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime())
+      .slice(0, 10); // 최근 10개만 전달
+      
+    res.json({ success: true, histories });
+  } catch (error: any) {
+    console.error('[Get History Error]:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
