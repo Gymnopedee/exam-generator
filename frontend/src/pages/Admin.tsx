@@ -250,14 +250,18 @@ export default function Admin() {
           <p className="text-sm text-gray-500 mb-6">최근 업로드된 자료를 확인하여 중복을 방지하세요.</p>
           
           <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-            {materials.length === 0 ? (
-              <div className="text-center text-gray-400 py-10">등록된 자료가 없습니다.</div>
+            {materials.filter(mat => mat.subject === subject && mat.status === 'completed').length === 0 ? (
+              <div className="text-center text-gray-400 py-10">해당 과목에 등록된 자료가 없습니다.</div>
             ) : (
-              materials.map((mat) => (
+              materials
+                .filter(mat => mat.subject === subject && mat.status === 'completed')
+                .map((mat) => (
                 <div key={mat.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50 flex flex-col gap-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2 font-bold text-gray-800">
-                      <span className="px-2 py-1 bg-gray-200 text-xs rounded text-gray-600">{mat.subject}</span>
+                      <span className="px-2 py-1 bg-gray-200 text-xs rounded text-gray-600">
+                        {subjects.find(s => s.id === mat.subject)?.name || mat.subject}
+                      </span>
                     </div>
                     <span className="text-xs text-gray-400">{new Date(mat.createdAt).toLocaleDateString()}</span>
                   </div>
