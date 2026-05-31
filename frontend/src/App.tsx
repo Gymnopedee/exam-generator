@@ -13,8 +13,18 @@ function App() {
             <Link to="/" className="text-xl font-bold text-blue-600">
               AI 내신 코치
             </Link>
-            <Link to="/admin" className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors">
-              선생님 자료 업로드
+            <Link 
+              to="/admin" 
+              className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
+              onClick={(e) => {
+                const code = window.prompt('관리자 비밀번호를 입력하세요.');
+                if (code !== '7564') {
+                  e.preventDefault();
+                  if (code !== null) alert('비밀번호가 일치하지 않습니다.');
+                }
+              }}
+            >
+              관리자
             </Link>
           </div>
         </header>
