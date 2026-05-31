@@ -28,6 +28,8 @@ function verifyAdminToken(token: string | undefined): boolean {
     const parts = token.split('.');
     if (parts.length !== 2) return false;
     const [payloadBase64, signature] = parts;
+    if (!payloadBase64 || !signature) return false; // TypeScript 타입 에러 예방 방어 가드
+    
     const payloadStr = Buffer.from(payloadBase64, 'base64').toString('utf8');
     const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(payloadStr).digest('hex');
     
