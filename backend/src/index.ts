@@ -74,8 +74,8 @@ app.get('/api/health', (req, res) => {
 // Setup multer for temporary file storage
 const upload = multer({ dest: 'uploads/' });
 
-// Existing text-based generate endpoint
-app.post('/api/generate', async (req, res) => {
+// Existing text-based generate endpoint - Protected by adminAuth
+app.post('/api/generate', adminAuth, async (req, res) => {
   try {
     const { documentText, subject } = req.body;
     if (!documentText) {
