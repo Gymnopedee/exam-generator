@@ -142,6 +142,30 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteMaterial = async (id: string) => {
+    if (!confirm('이 학습 자료를 삭제하시겠습니까?\n(주의: 등록 자료 목록에서만 제거되며, 이미 생성된 문제은행에는 영향을 주지 않습니다.)')) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/materials/${id}`, { 
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('🗑️ 자료가 안전하게 삭제되었습니다.');
+        fetchMaterials();
+      } else {
+        toast.error('자료 삭제 실패: ' + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('자료 삭제 과정에서 에러가 발생했습니다.');
+    }
+  };
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !subject) return;
@@ -383,16 +407,26 @@ export default function Admin() {
               materials
                 .filter(mat => mat.subject === subject && mat.status === 'completed')
                 .map((mat) => (
-                <div key={mat.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50 flex flex-col gap-2">
+                <div key={mat.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50 flex flex-col gap-2 relative group">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2 font-bold text-gray-800">
                       <span className="px-2 py-1 bg-gray-200 text-xs rounded text-gray-600">
                         {subjects.find(s => s.id === mat.subject)?.name || mat.subject}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400">{new Date(mat.createdAt).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-gray-400">{new Date(mat.createdAt).toLocaleDateString()}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleDeleteMaterial(mat.id)}
+                        className="text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 p-1.5 rounded-lg border border-red-200 transition-all flex items-center justify-center shadow-sm shrink-0"
+                        title="자료 삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-gray-500 truncate">
+                  <div className="flex items-center gap-1 text-sm text-gray-500 truncate pr-6">
                     <File className="w-4 h-4 shrink-0" /> {mat.filename}
                   </div>
                 </div>

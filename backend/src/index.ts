@@ -275,6 +275,17 @@ app.get('/api/materials', async (req, res) => {
   }
 });
 
+// Delete specific material by ID (Protected by adminAuth)
+app.delete('/api/materials/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('materials').doc(id).delete();
+    res.json({ success: true, message: 'Material deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- Subject Management APIs ---
 app.get('/api/subjects', async (req, res) => {
   try {
