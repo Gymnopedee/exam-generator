@@ -1,7 +1,21 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": true,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/trip",
+      "destination": "/trip/index.html"
+    },
+    {
+      "source": "/trip/",
+      "destination": "/trip/index.html"
+    },
+    {
+      "source": "/trip/:path*",
+      "destination": "/trip/:path*"
+    },
+    {
+      "source": "/((?!trip).*)",
       "destination": "/index.html"
     }
   ]

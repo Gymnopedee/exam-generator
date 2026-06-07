@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelPack - 설레는 여행 준비물 체크리스트</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* CSS 변수를 활용한 디자인 시스템 정의 */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: rgba(255, 255, 255, 0.5);
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* iOS Safari 터치 회색 음영 하이라이트 제거 */
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            min-height: 100dvh; /* 모바일 Safari 주소창 버그 방지 dynamic viewport height */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+            transition: var(--transition);
+        }
+
+        /* 메인 컨테이너 (Glassmorphism 적용) */
+        .container {
+            width: 100%;
+            max-width: 640px;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 2.5rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 배경에 은은한 오라 효과 추가 */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 2rem;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* 다크모드 토글 버튼 */
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--primary);
+            transform: rotate(15deg);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* 진척도(Progress) 영역 */
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .progress-bar-bg {
+            background: rgba(0, 0, 0, 0.05);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .progress-bar-bg {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 할 일 추가 폼 */
+        .todo-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        [data-theme="dark"] .input-group {
+            background: rgba(15, 23, 42, 0.3);
+        }
+
+        .input-group:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* 카테고리 셀렉터 */
+        .category-select {
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 0 1.6rem 0 0.8rem;
+            font-size: 16px; /* iOS Safari 줌인 방지 (최소 16px) */
+            color: var(--text-main);
+            border-right: 1px solid var(--card-border);
+            cursor: pointer;
+            -webkit-appearance: none; /* iOS 기본 select 화살표 제거 */
+            appearance: none;
+            border-radius: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+        }
+
+        [data-theme="dark"] .category-select {
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+        }
+
+        .todo-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 0.8rem 1rem;
+            font-size: 16px; /* iOS Safari 줌인 방지 (최소 16px) */
+            color: var(--text-main);
+            -webkit-appearance: none; /* iOS 입력 섀도우 방지 */
+            border-radius: 0;
+        }
+
+        .todo-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .add-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .add-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 필터 컨트롤 */
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        /* 리스트 영역 */
+        .todo-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            position: relative;
+            z-index: 1;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        /* 커스텀 스크롤바 */
+        .todo-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .todo-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .todo-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+
+        [data-theme="dark"] .todo-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 개별 리스트 아이템 */
+        .todo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            transition: var(--transition);
+            animation: slideIn 0.3s ease;
+        }
+
+        [data-theme="dark"] .todo-item {
+            background: rgba(15, 23, 42, 0.2);
+        }
+
+        .todo-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .todo-item.checked {
+            opacity: 0.6;
+        }
+
+        .todo-left {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex: 1;
+        }
+
+        /* 체크박스 커스터마이징 */
+        .custom-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--text-muted);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: transparent;
+            font-size: 0.75rem;
+            position: relative; /* 터치 영역 가상 요소를 위한 기준점 */
+        }
+
+        /* 모바일/터치 기기에서 체크하기 편하도록 터치 영역 확장 */
+        .custom-checkbox::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            bottom: -10px;
+            left: -10px;
+            right: -10px;
+        }
+
+        .todo-item.checked .custom-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .custom-checkbox:hover {
+            border-color: var(--primary);
+        }
+
+        /* 카테고리 배지 */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .badge-essential { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .badge-clothes { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .badge-toiletries { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .badge-electronics { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .badge-documents { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .badge-others { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+
+        .todo-text {
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: var(--transition);
+            word-break: break-all;
+            user-select: none;
+        }
+
+        .todo-item.checked .todo-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        /* 수정 시 활성화되는 Input */
+        .edit-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--primary);
+            outline: none;
+            font-size: 16px; /* iOS Safari 자동 줌인 방지 (최소 16px 필요) */
+            color: var(--text-main);
+            padding: 2px 0;
+            font-weight: 500;
+            -webkit-appearance: none;
+            border-radius: 0;
+        }
+
+        /* 액션 버튼 그룹 */
+        .actions {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.4rem;
+            border-radius: 6px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] .action-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .edit-btn:hover {
+            color: var(--primary);
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+        }
+
+        /* 데이터 관리 패널 스타일 */
+        .data-panel {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px dashed var(--card-border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            animation: slideIn 0.3s ease;
+        }
+        [data-theme="dark"] .data-panel {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        .data-panel-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .data-btn-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        @media (min-width: 480px) {
+            .data-btn-group {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        .data-action-btn {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.6rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        [data-theme="dark"] .data-action-btn {
+            background: rgba(30, 41, 59, 0.6);
+        }
+        .data-action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* 빈 상태 레이아웃 */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.7;
+        }
+
+        /* 애니메이션 키프레임 */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 480px) {
+            body {
+                background-attachment: scroll; /* iOS Safari 고정 배경 렌더링 버그 방지 */
+            }
+            .container {
+                padding: 1.5rem;
+            }
+            .todo-form {
+                flex-direction: column;
+            }
+            .add-btn {
+                padding: 0.8rem;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 헤더 영역 -->
+        <header>
+            <div class="header-top">
+                <h1><i class="fa-solid fa-plane-departure"></i> TravelPack</h1>
+                <div style="display: flex; gap: 0.3rem;">
+                    <button class="theme-toggle" id="dataMenuBtn" title="데이터 공유 및 백업">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                    <button class="theme-toggle" id="themeToggle" title="화면 테마 변경">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="subtitle">설레는 여행의 시작, 꼼꼼하게 준비물을 챙겨보세요.</div>
+        </header>
+
+        <!-- 데이터 공유/백업 패널 -->
+        <div class="data-panel" id="dataPanel" style="display: none;">
+            <div class="data-panel-title">
+                <i class="fa-solid fa-gears"></i> 데이터 공유 & 백업
+            </div>
+            <div class="data-btn-group">
+                <button type="button" class="data-action-btn" onclick="exportAsHTML()" title="현재 리스트가 포함된 새 HTML 파일로 내려받아 타인에게 파일 자체를 공유합니다.">
+                    <i class="fa-solid fa-file-arrow-down"></i> HTML로 내보내기 (공유용)
+                </button>
+                <button type="button" class="data-action-btn" onclick="exportAsJSON()" title="JSON 데이터 파일로 리스트를 백업합니다.">
+                    <i class="fa-solid fa-file-export"></i> 데이터 백업 (JSON)
+                </button>
+                <button type="button" class="data-action-btn" onclick="triggerImport()" title="백업된 JSON 파일로부터 리스트를 복원합니다.">
+                    <i class="fa-solid fa-file-import"></i> 데이터 복원 (JSON)
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+            </div>
+            <!-- API 서버 주소 설정 영역 -->
+            <div style="margin-top: 1rem; border-top: 1px dashed var(--card-border); padding-top: 0.8rem;">
+                <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.4rem; color: var(--text-main);">API 서버 주소 설정 (배포 시)</label>
+                <div style="display: flex; gap: 0.3rem;">
+                    <input type="text" id="apiUrlInput" placeholder="예: https://xxx.railway.app" style="flex: 1; font-size: 0.8rem; padding: 0.4rem 0.6rem; border: 1px solid var(--card-border); border-radius: 6px; background: rgba(0,0,0,0.05); color: var(--text-main); outline: none;">
+                    <button type="button" onclick="saveApiUrl()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 진척도 표시 -->
+        <div class="progress-container">
+            <div class="progress-header">
+                <span>준비 완료도</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+        </div>
+
+        <!-- 아이템 추가 폼 -->
+        <form class="todo-form" id="todoForm">
+            <div class="input-group">
+                <select class="category-select" id="categorySelect">
+                    <option value="essential">🚨 필수품</option>
+                    <option value="clothes">👕 의류/잡화</option>
+                    <option value="toiletries">🧴 세면도구</option>
+                    <option value="electronics">🔌 전자기기</option>
+                    <option value="documents">📄 여권/서류</option>
+                    <option value="others">📦 기타</option>
+                </select>
+                <input type="text" class="todo-input" id="todoInput" placeholder="어떤 준비물을 챙겨야 할까요? (예: 여권)" required max="50">
+            </div>
+            <button type="submit" class="add-btn">
+                <i class="fa-solid fa-plus"></i> 추가
+            </button>
+        </form>
+
+        <!-- 필터 버튼 그룹 -->
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">전체보기</button>
+            <button class="filter-btn" data-filter="essential">🚨 필수품</button>
+            <button class="filter-btn" data-filter="clothes">👕 의류</button>
+            <button class="filter-btn" data-filter="toiletries">🧴 세면도구</button>
+            <button class="filter-btn" data-filter="electronics">🔌 전자기기</button>
+            <button class="filter-btn" data-filter="documents">📄 서류</button>
+            <button class="filter-btn" data-filter="others">📦 기타</button>
+        </div>
+
+        <!-- 리스트 목록 -->
+        <ul class="todo-list" id="todoList">
+            <!-- 자바스크립트로 동적 로드 -->
+        </ul>
+    </div>
+
+    <script>
+        // --- 1. 상태 정의 (State Management) ---
+        let todos = [];
+        let currentFilter = 'all';
+
+        // 카테고리별 다국어 매핑 및 이모지
+        const categoryMeta = {
+            essential: { label: '필수품', class: 'badge-essential' },
+            clothes: { label: '의류/잡화', class: 'badge-clothes' },
+            toiletries: { label: '세면도구', class: 'badge-toiletries' },
+            electronics: { label: '전자기기', class: 'badge-electronics' },
+            documents: { label: '여권/서류', class: 'badge-documents' },
+            others: { label: '기타', class: 'badge-others' }
+        };
+
+        // --- 2. DOM 요소 선택 ---
+        const todoForm = document.getElementById('todoForm');
+        const todoInput = document.getElementById('todoInput');
+        const categorySelect = document.getElementById('categorySelect');
+        const todoList = document.getElementById('todoList');
+        const themeToggle = document.getElementById('themeToggle');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        // --- 3. 로컬 스토리지 연동 ---
+        // ★ 다른 모바일 기기에서도 설정 없이 즉시 데이터가 동기화되게 하려면 아래 따옴표 사이에 실제 배포된 백엔드(Railway) 주소를 기입하세요.
+        const DEFAULT_API_URL = 'https://exam-generator-production-611f.up.railway.app'; 
+
+        let API_BASE_URL = localStorage.getItem('api_url') || 
+            (window.location.protocol === 'file:' 
+                ? 'http://localhost:8080' 
+                : (DEFAULT_API_URL !== '배포된_백엔드_서버_주소_여기에_기입' ? DEFAULT_API_URL : ''));
+
+        function saveApiUrl() {
+            const inputVal = document.getElementById('apiUrlInput').value.trim();
+            if (inputVal) {
+                const cleanUrl = inputVal.replace(/\/$/, "");
+                localStorage.setItem('api_url', cleanUrl);
+                alert('API 주소가 안전하게 저장되었습니다. 새로고침 후 반영됩니다.');
+                location.reload();
+            } else {
+                localStorage.removeItem('api_url');
+                alert('API 주소가 초기화되었습니다. 새로고침 후 기본값으로 적용됩니다.');
+                location.reload();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUrl = localStorage.getItem('api_url');
+            if (savedUrl) {
+                const inputEl = document.getElementById('apiUrlInput');
+                if (inputEl) inputEl.value = savedUrl;
+            }
+        });
+
+        function loadState() {
+            // A. 로컬 스토리지를 읽어서 빠른 초기 렌더링 지원 (사용성 향상)
+            const savedTodos = localStorage.getItem('travel_todos');
+            if (savedTodos) {
+                todos = JSON.parse(savedTodos);
+                renderTodos();
+            }
+
+            const savedTheme = localStorage.getItem('travel_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+
+            // B. 서버의 클라우드 API를 호출하여 최신 Firestore 데이터 로드 및 덮어쓰기
+            fetch(API_BASE_URL + '/api/todos')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.todos) {
+                    todos = data.todos;
+                    localStorage.setItem('travel_todos', JSON.stringify(todos));
+                    updateProgress();
+                    renderTodos();
+                    console.log('클라우드 DB 실시간 동기화 완료');
+                }
+            })
+            .catch(err => {
+                console.log('클라우드 동기화 실패 (오프라인 캐시 유지):', err);
+                // 오프라인이면서 로컬 스토리지에 데이터가 아예 없을 때 기본 예시 주입
+                if (!savedTodos) {
+                    // 기본 탑재 예시 데이터
+                    todos = [
+                        { id: Date.now() + 1, text: '여권 및 비자 확인하기', category: 'documents', checked: false },
+                        { id: Date.now() + 2, text: '보조배터리 및 멀티어댑터 챙기기', category: 'electronics', checked: false },
+                        { id: Date.now() + 3, text: '비상약 (감기약, 소화제, 밴드)', category: 'essential', checked: false },
+                        { id: Date.now() + 4, text: '속옷 및 겉옷 세트별 포장', category: 'clothes', checked: false }
+                    ];
+                    saveState();
+                }
+            });
+        }
+
+        function saveState() {
+            localStorage.setItem('travel_todos', JSON.stringify(todos));
+            updateProgress();
+
+            // 백엔드 동기화 서버 작동 시 로컬 디스크 파일 실시간 동기화
+            fetch(API_BASE_URL + '/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ todos: todos })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('PC 로컬 디스크 원본 파일에 저장 완료');
+                }
+            })
+            .catch(err => {
+                // 단독 실행 시에는 오류를 무시 (로컬 스토리지는 지속 작동)
+                console.log('로컬 동기화 서버 오프라인 (브라우저 단독 모드)');
+            });
+        }
+
+        // --- 4. 테마 변경 처리 ---
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('travel_theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+
+        function updateThemeIcon(theme) {
+            const icon = themeToggle.querySelector('i');
+            if (theme === 'dark') {
+                icon.className = 'fa-solid fa-sun';
+            } else {
+                icon.className = 'fa-solid fa-moon';
+            }
+        }
+
+        // --- 5. 비즈니스 로직 (CRUD) ---
+
+        // 준비물 추가
+        todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = todoInput.value.trim();
+            const category = categorySelect.value;
+
+            if (!text) return;
+
+            const newTodo = {
+                id: Date.now(),
+                text: text,
+                category: category,
+                checked: false
+            };
+
+            todos.push(newTodo);
+            saveState();
+            renderTodos();
+
+            todoInput.value = '';
+            todoInput.focus();
+        });
+
+        // 준비물 삭제
+        function deleteTodo(id) {
+            const itemElement = document.querySelector(`[data-id="${id}"]`);
+            if (itemElement) {
+                // 부드러운 삭제 애니메이션 효과 적용
+                itemElement.style.animation = 'fadeOut 0.2s ease forwards';
+                setTimeout(() => {
+                    todos = todos.filter(todo => todo.id !== id);
+                    saveState();
+                    renderTodos();
+                }, 200);
+            }
+        }
+
+        // 준비물 상태 체크 토글
+        function toggleCheck(id) {
+            todos = todos.map(todo => {
+                if (todo.id === id) {
+                    return { ...todo, checked: !todo.checked };
+                }
+                return todo;
+            });
+            saveState();
+            renderTodos();
+        }
+
+        // 준비물 수정 모드 진입 및 저장
+        function startEdit(id, textSpan, itemElement) {
+            const currentText = textSpan.innerText;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'edit-input';
+            input.value = currentText;
+
+            // 수정 아이콘 버튼 비활성화 시키거나 input으로 완전 교체
+            textSpan.replaceWith(input);
+            input.focus();
+
+            const saveEdit = () => {
+                const newText = input.value.trim();
+                if (newText) {
+                    todos = todos.map(todo => {
+                        if (todo.id === id) {
+                            return { ...todo, text: newText };
+                        }
+                        return todo;
+                    });
+                    saveState();
+                }
+                renderTodos();
+            };
+
+            // Enter 입력 시 저장
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveEdit();
+            });
+
+            // Focus를 잃으면 자동 저장
+            input.addEventListener('blur', saveEdit);
+        }
+
+        // --- 6. UI 렌더링 & 제어 ---
+
+        // 진척도 게이지 및 수치 계산
+        function updateProgress() {
+            if (todos.length === 0) {
+                progressBar.style.width = '0%';
+                progressPercent.innerText = '0%';
+                return;
+            }
+            const checkedCount = todos.filter(todo => todo.checked).length;
+            const percent = Math.round((checkedCount / todos.length) * 100);
+            progressBar.style.width = `${percent}%`;
+            progressPercent.innerText = `${percent}%`;
+        }
+
+        // 필터링 적용
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentFilter = button.dataset.filter;
+                renderTodos();
+            });
+        });
+
+        // 리스트 그리기
+        function renderTodos() {
+            todoList.innerHTML = '';
+
+            // 필터링 된 투두만 선별
+            const filteredTodos = todos.filter(todo => {
+                if (currentFilter === 'all') return true;
+                return todo.category === currentFilter;
+            });
+
+            // 빈 상태 처리
+            if (filteredTodos.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.innerHTML = `
+                    <i class="fa-solid fa-suitcase-rolling"></i>
+                    <p>등록된 준비물이 없습니다.</p>
+                `;
+                todoList.appendChild(emptyState);
+                return;
+            }
+
+            // 아이템 동적 생성
+            filteredTodos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = `todo-item ${todo.checked ? 'checked' : ''}`;
+                li.dataset.id = todo.id;
+
+                // 뱃지 정보 파싱
+                const meta = categoryMeta[todo.category] || { label: '기타', class: 'badge-others' };
+
+                li.innerHTML = `
+                    <div class="todo-left">
+                        <div class="custom-checkbox" onclick="toggleCheck(${todo.id})">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <span class="badge ${meta.class}">${meta.label}</span>
+                        <span class="todo-text">${todo.text}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="action-btn edit-btn" onclick="triggerEdit(${todo.id})" title="수정">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteTodo(${todo.id})" title="삭제">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+
+                todoList.appendChild(li);
+            });
+        }
+
+        // 글로벌 접근 함수 바인딩
+        window.toggleCheck = toggleCheck;
+        window.deleteTodo = deleteTodo;
+        window.triggerEdit = function(id) {
+            const itemElement = document.querySelector(`[data-id="${id}"]`);
+            const textSpan = itemElement.querySelector('.todo-text');
+            if (textSpan) {
+                startEdit(id, textSpan, itemElement);
+            }
+        };
+        window.exportAsHTML = exportAsHTML;
+        window.exportAsJSON = exportAsJSON;
+        window.triggerImport = triggerImport;
+        window.importJSON = importJSON;
+        window.saveApiUrl = saveApiUrl;
+
+        // 데이터 관리 패널 토글 리스너
+        const dataMenuBtn = document.getElementById('dataMenuBtn');
+        const dataPanel = document.getElementById('dataPanel');
+        dataMenuBtn.addEventListener('click', () => {
+            const isHidden = dataPanel.style.display === 'none';
+            dataPanel.style.display = isHidden ? 'block' : 'none';
+        });
+
+        // 1. HTML로 내보내기 (공유용 - 실시간 데이터 포함)
+        function exportAsHTML() {
+            if (todos.length === 0) {
+                alert('내보낼 준비물이 없습니다. 먼저 준비물을 추가해 주세요!');
+                return;
+            }
+
+            let htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            
+            const listEl = doc.getElementById('todoList');
+            if (listEl) {
+                listEl.innerHTML = '<!-- 자바스크립트로 동적 로드 -->';
+            }
+            
+            const barEl = doc.getElementById('progressBar');
+            if (barEl) barEl.style.width = '0%';
+            const percentEl = doc.getElementById('progressPercent');
+            if (percentEl) percentEl.innerText = '0%';
+            
+            const panelEl = doc.getElementById('dataPanel');
+            if (panelEl) panelEl.style.display = 'none';
+
+            let cleanedHtml = doc.documentElement.outerHTML;
+
+            // 정적 뼈대에 기본 탑재 예시 데이터를 현재 메모리의 데이터로 정규표현식 치환
+            const dataPlaceholderPattern = /\/\/\s*기본\s*탑재\s*예시\s*데이터[\s\S]*?todos\s*=\s*\[[\s\S]*?\];/;
+            const formattedTodos = JSON.stringify(todos, null, 4);
+            const replacementString = `// 기본 탑재 예시 데이터\n                todos = ${formattedTodos};`;
+            
+            cleanedHtml = cleanedHtml.replace(dataPlaceholderPattern, replacementString);
+            const finalHtml = "<!DOCTYPE html>\n" + cleanedHtml;
+
+            const blob = new Blob([finalHtml], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'TravelPack_공유용.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 2. JSON 데이터 백업
+        function exportAsJSON() {
+            if (todos.length === 0) {
+                alert('백업할 데이터가 없습니다.');
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(todos, null, 2));
+            const a = document.createElement('a');
+            a.setAttribute("href", dataStr);
+            a.setAttribute("download", "travel_checklist_backup.json");
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        // 3. JSON 복원 파일 탐색기 트리거
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        // 4. JSON 파일 파싱 및 복원
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedTodos = JSON.parse(e.target.result);
+                    if (Array.isArray(importedTodos)) {
+                        const isValid = importedTodos.every(item => item.hasOwnProperty('text') && item.hasOwnProperty('category'));
+                        if (isValid) {
+                            todos = importedTodos;
+                            saveState();
+                            renderTodos();
+                            alert('준비물 데이터를 성공적으로 복원했습니다!');
+                        } else {
+                            alert('올바르지 않은 데이터 파일 형식입니다.');
+                        }
+                    } else {
+                        alert('올바른 JSON 배열 형식이 아닙니다.');
+                    }
+                } catch (err) {
+                    alert('파일 복원 도중 에러가 발생했습니다.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // 동일 파일 재업로드 지원을 위한 초기화
+        }
+
+        // 초기화 실행
+        loadState();
+        renderTodos();
+    </script>
+</body>
+</html>

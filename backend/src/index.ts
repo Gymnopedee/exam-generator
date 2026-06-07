@@ -504,6 +504,64 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
+// --- Travel Checklist APIs ---
+// 1. 준비물 목록 불러오기 API
+app.get('/api/todos', async (req, res) => {
+  try {
+    const snapshot = await db.collection('travel_todos').orderBy('createdAt', 'asc').get();
+    const todos = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: Number(doc.id),
+        text: data.text,
+        category: data.category,
+        checked: data.checked || false
+      };
+    });
+    res.json({ success: true, todos });
+  } catch (error: any) {
+    console.error('Firestore travel_todos 불러오기 실패:', error);
+    res.status(500).json({ success: false, message: '서버 데이터 불러오기 실패' });
+  }
+});
+
+// 2. 준비물 실시간 저장/업데이트 API
+app.post('/api/save', async (req, res) => {
+  const { todos } = req.body;
+  if (!Array.isArray(todos)) {
+    return res.status(400).json({ success: false, message: '올바르지 않은 데이터 형식입니다.' });
+  }
+
+  try {
+    const batch = db.batch();
+    const collectionRef = db.collection('travel_todos');
+
+    // 기존 모든 데이터 일괄 삭제 (초기 동기화)
+    const snapshot = await collectionRef.get();
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    // 실시간 최신 목록 일괄 추가
+    todos.forEach((todo: any, index: number) => {
+      const docId = String(todo.id || Date.now() + index);
+      const docRef = collectionRef.doc(docId);
+      batch.set(docRef, {
+        text: todo.text,
+        category: todo.category,
+        checked: todo.checked || false,
+        createdAt: new Date().toISOString()
+      });
+    });
+
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Firestore travel_todos 저장 실패:', error);
+    res.status(500).json({ success: false, message: '서버 데이터 동기화 실패' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
